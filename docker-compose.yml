@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   webgone:
+    image: ghcr.io/cozygalvinism/webgone:main
     build: .
     volumes:
       - ./data:/data

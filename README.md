@@ -9,6 +9,7 @@ A Rust-based internet connectivity monitor that tracks and logs internet outages
 - 📅 Historical outage data
 - 💾 SQLite database for persistent storage
 - 📈 CSV export functionality
+- 💰 Cost impact analysis
 - 🐳 Docker support with multi-arch builds
 
 ## Installation
@@ -34,7 +35,7 @@ Requirements:
 
 ```bash
 cargo build --release
-./target/release/webgone
+./target/release/webgone --help
 ```
 
 ## Usage
@@ -43,19 +44,19 @@ cargo build --release
 
 - Start monitoring (with default settings):
 ```bash
-webgone
+webgone watch
 ```
 
 - Start monitoring with custom settings:
 ```bash
 # Check 1.1.1.1:53 every 10 seconds
-webgone --ip 1.1.1.1 --port 53 --interval 10
+webgone watch --ip 1.1.1.1 --port 53 --interval 10
 
 # Check Google DNS with custom interval
-webgone --interval 30  # check every 30 seconds
+webgone watch --interval 30  # check every 30 seconds
 
 # Check custom IP with default port and interval
-webgone --ip 9.9.9.9  # check Quad9 DNS
+webgone watch --ip 9.9.9.9  # check Quad9 DNS
 ```
 
 - View statistics:
@@ -77,6 +78,11 @@ webgone recent 10
 webgone export outages.csv
 ```
 
+- Calculate cost impact (with monthly rate in EUR):
+```bash
+webgone cost 45.99
+```
+
 ### Docker Commands
 
 - Start monitoring:
@@ -90,7 +96,7 @@ docker-compose up -d
 docker-compose up -d
 
 # With custom IP and interval
-docker-compose run webgone /app/webgone --ip 1.1.1.1 --interval 10
+docker-compose run webgone /app/webgone watch --ip 1.1.1.1 --interval 10
 ```
 
 - View statistics:
@@ -108,21 +114,10 @@ docker-compose exec webgone /app/webgone recent
 docker-compose exec webgone /app/webgone export outages.csv
 ```
 
-## Configuration
-
-The application can be configured using command-line arguments:
-
-| Argument | Description | Default |
-|----------|-------------|---------|
-| --ip | IP address to check | 8.8.8.8 (Google DNS) |
-| --port | Port to check | 53 (DNS port) |
-| --interval | Check interval in seconds | 5 |
-
-Example configurations:
-- Google DNS (default): `8.8.8.8:53`
-- Cloudflare DNS: `1.1.1.1:53`
-- Quad9 DNS: `9.9.9.9:53`
-- Custom server: `192.168.1.1:80`
+- Calculate cost impact:
+```bash
+docker-compose exec webgone /app/webgone cost 45.99
+```
 
 ## How It Works
 
@@ -138,6 +133,46 @@ The application performs TCP connection tests to Google's DNS server (8.8.8.8) e
 - All outage data is stored in a SQLite database (`internet_outages.db`)
 - When using Docker, the database is stored in a persistent volume (`./data`)
 - Data can be exported to CSV format for further analysis
+
+## Cost Analysis
+
+The cost analysis feature helps you understand the monetary impact of your internet outages:
+
+- Calculates the proportional cost of downtime based on your monthly rate
+- Uses exact number of days per month (accounting for leap years)
+- Provides detailed monthly breakdown including:
+  * Number of outages
+  * Total downtime in HH:MM:SS format
+  * Percentage of downtime
+  * Cost impact with 3 decimal precision
+  * Hourly rate for the month
+- Shows comprehensive statistics:
+  * Total cost across all outages
+  * Average monthly cost
+  * Total downtime in hours
+  * Average monthly downtime
+  * Effective cost per hour of downtime
+
+Example output:
+```
+Monthly Cost Analysis:
+----------------------------------------------------------------------------------------------------
+| Year      | Month       | Outages | Total Time     | % Downtime  | Cost Impact    | Rate/Hour    |
+----------------------------------------------------------------------------------------------------
+| 2024      | February    | 5       | 01:23:45      | 0.205%     | €      0.833   | €    0.066/h |
+| 2024      | January     | 3       | 00:45:30      | 0.102%     | €      0.452   | €    0.062/h |
+----------------------------------------------------------------------------------------------------
+Total cost of outages: €1.285
+Average monthly cost: €0.643
+Total downtime: 2.2 hours (1.1 hours/month avg)
+Effective cost per hour of downtime: €0.584/h
+----------------------------------------------------------------------------------------------------
+```
+
+The cost is calculated using the exact number of days in each month:
+- Regular months: 31 days
+- Short months: 30 days (Apr, Jun, Sep, Nov)
+- February: 28/29 days (accounting for leap years)
 
 ## Docker Support
 

@@ -52,3 +52,5 @@ WORKDIR /data
 
 # Run the binary
 ENTRYPOINT ["/app/webgone"]
+
+CMD [ "watch" ]
