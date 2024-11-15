@@ -24,10 +24,6 @@ jobs:
       # Set up Docker Buildx with caching
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          platforms: linux/amd64,linux/arm64
-          driver-opts: |
-            image=moby/buildkit:master
 
       # Set up build cache
       - name: Set up build cache
@@ -71,7 +67,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Parallel building for both architectures
-          build-args: |
-            BUILDPLATFORM=${{ matrix.platform }}
           outputs: type=image,push=true

@@ -18,17 +18,20 @@ COPY . .
 
 # Build for the target architecture
 ARG TARGETARCH
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-        echo "Building for ARM64..." && \
-        export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc && \
-        export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig && \
-        cargo build --release --target aarch64-unknown-linux-gnu && \
-        cp target/aarch64-unknown-linux-gnu/release/webgone /usr/src/webgone/webgone; \
-    else \
-        echo "Building for AMD64..." && \
-        cargo build --release && \
-        cp target/release/webgone /usr/src/webgone/webgone; \
-    fi
+RUN case "$TARGETARCH" in \
+        "arm64") \
+            echo "Building for ARM64..." && \
+            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc && \
+            export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig && \
+            cargo build --release --target aarch64-unknown-linux-gnu && \
+            cp target/aarch64-unknown-linux-gnu/release/webgone /usr/src/webgone/webgone \
+            ;; \
+        *) \
+            echo "Building for AMD64..." && \
+            cargo build --release && \
+            cp target/release/webgone /usr/src/webgone/webgone \
+            ;; \
+    esac
 
 # Runtime stage
 FROM --platform=$TARGETPLATFORM debian:bookworm-slim
