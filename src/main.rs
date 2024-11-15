@@ -3,8 +3,9 @@ use chrono::{DateTime, Local};
 use rusqlite::{Connection, params, Row};
 use std::{thread, time::Duration};
 use std::env;
-use std::net::{TcpStream, SocketAddr};
+use std::net::{TcpStream, SocketAddr, IpAddr};
 use std::time::Instant;
+use std::str::FromStr;
 
 struct InternetOutage {
     start_time: DateTime<Local>,
@@ -63,11 +64,8 @@ fn init_database(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
-fn check_internet() -> bool {
-    // Try connecting to Google's DNS server (8.8.8.8:53)
-    let addr = SocketAddr::from(([8, 8, 8, 8], 53));
+fn check_internet(addr: SocketAddr) -> bool {
     let timeout = Duration::from_secs(1);
-    
     let start = Instant::now();
     let result = TcpStream::connect_timeout(&addr, timeout);
     
@@ -168,10 +166,52 @@ fn export_to_csv(conn: &Connection, filename: &str) -> Result<()> {
 
 fn print_usage() {
     println!("Usage:");
-    println!("  webgone                    - Start monitoring internet connection");
+    println!("  webgone [OPTIONS]           - Start monitoring internet connection");
     println!("  webgone stats              - Show statistics about outages");
     println!("  webgone recent [n]         - Show n most recent outages (default: 5)");
     println!("  webgone export [filename]  - Export data to CSV (default: outages.csv)");
+    println!("\nOptions:");
+    println!("  --ip <address>     IP address to check (default: 8.8.8.8)");
+    println!("  --port <port>      Port to check (default: 53)");
+    println!("  --interval <secs>  Check interval in seconds (default: 5)");
+}
+
+fn parse_monitor_args() -> (SocketAddr, Duration) {
+    let args: Vec<String> = env::args().collect();
+    let mut ip = IpAddr::from([8, 8, 8, 8]);
+    let mut port = 53;
+    let mut interval = 5;
+    
+    let mut i = 1;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--ip" => {
+                if i + 1 < args.len() {
+                    ip = IpAddr::from_str(&args[i + 1])
+                        .expect("Invalid IP address format");
+                    i += 1;
+                }
+            }
+            "--port" => {
+                if i + 1 < args.len() {
+                    port = args[i + 1].parse()
+                        .expect("Invalid port number");
+                    i += 1;
+                }
+            }
+            "--interval" => {
+                if i + 1 < args.len() {
+                    interval = args[i + 1].parse()
+                        .expect("Invalid interval");
+                    i += 1;
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    
+    (SocketAddr::new(ip, port), Duration::from_secs(interval))
 }
 
 fn main() -> Result<()> {
@@ -183,15 +223,17 @@ fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     
     match args.get(1).map(|s| s.as_str()) {
-        None => {
+        None | Some("--ip") | Some("--port") | Some("--interval") => {
+            let (addr, interval) = parse_monitor_args();
             println!("Starting internet connectivity monitoring...");
+            println!("Checking {} every {} seconds", addr, interval.as_secs());
             println!("Press Ctrl+C to stop monitoring.");
             
             let mut is_connected = true;
             let mut outage_start: Option<DateTime<Local>> = None;
             
             loop {
-                let current_status = check_internet();
+                let current_status = check_internet(addr);
                 
                 match (is_connected, current_status) {
                     (true, false) => {
@@ -224,7 +266,7 @@ fn main() -> Result<()> {
                     _ => {}
                 }
                 
-                thread::sleep(Duration::from_secs(5));
+                thread::sleep(interval);
             }
         }
         Some("stats") => {
