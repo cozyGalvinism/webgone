@@ -103,11 +103,11 @@ fn get_stats(conn: &Connection) -> Result<OutageStats> {
 
     let stats = stmt.query_row([], |row| {
         Ok(OutageStats {
-            total_outages: row.get(0)?,
-            total_duration: row.get(1)?,
-            average_duration: row.get(2)?,
-            longest_outage: row.get(3)?,
-            shortest_outage: row.get(4)?,
+            total_outages: row.get(0).unwrap_or_default(),
+            total_duration: row.get(1).unwrap_or_default(),
+            average_duration: row.get(2).unwrap_or_default(),
+            longest_outage: row.get(3).unwrap_or_default(),
+            shortest_outage: row.get(4).unwrap_or_default(),
         })
     })?;
 
