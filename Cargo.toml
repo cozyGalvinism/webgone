@@ -1,0 +1,10 @@
+[package]
+name = "webgone"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.41", features = ["full"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+chrono = "0.4"
+anyhow = "1.0"

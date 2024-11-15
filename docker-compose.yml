@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  webgone:
+    build: .
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
